@@ -1,8 +1,9 @@
-"""项目命令入口；当前提供环境和设备验证。"""
+"""项目命令入口：环境检查、语料准备、训练、生成与验收。"""
 
 import argparse
 import json
 import platform
+from pathlib import Path
 
 import torch
 
@@ -14,6 +15,28 @@ def main() -> None:
     commands = parser.add_subparsers(dest="command", required=True)
     doctor = commands.add_parser("doctor", help="检查依赖、设备和自动求导")
     doctor.add_argument("--device", choices=["auto", "cpu", "mps", "cuda"], default="auto")
+    prepare = commands.add_parser("prepare", help="下载或复用《呐喊》原件，清洗并切分")
+    prepare.add_argument("--raw", type=Path, default=Path("data/raw/nahan-pg27166.txt"))
+    prepare.add_argument("--output", type=Path, default=Path("data/processed/nahan"))
+    prepare.add_argument("--download", action="store_true", help="显式允许下载原始语料")
+    prepare.add_argument("--validation-fraction", type=float, default=0.1)
+    train = commands.add_parser("train", help="从随机初始化训练并记录验收样本")
+    train.add_argument("--config", type=Path, default=Path("configs/pretrain/tiny_char.toml"))
+    train.add_argument("--max-steps", type=int)
+    train.add_argument("--run-dir", type=Path)
+    train.add_argument("--checkpoint-dir", type=Path)
+    train.add_argument("--device", choices=["auto", "cpu", "mps", "cuda"])
+    generate = commands.add_parser("generate", help="独立加载检查点并续写")
+    generate.add_argument("--checkpoint", type=Path, required=True)
+    generate.add_argument("--prompt", required=True)
+    generate.add_argument("--max-new-tokens", type=int, default=200)
+    generate.add_argument("--temperature", type=float, default=0.8)
+    generate.add_argument("--seed", type=int, default=42)
+    generate.add_argument("--device", choices=["auto", "cpu", "mps", "cuda"], default="auto")
+    verify = commands.add_parser("verify", help="独立验收完整验证区段和固定生成")
+    verify.add_argument("--run-dir", type=Path, default=Path("runs/nahan"))
+    verify.add_argument("--checkpoint-dir", type=Path, default=Path("artifacts/checkpoints/nahan"))
+    verify.add_argument("--device", choices=["auto", "cpu", "mps", "cuda"], default="auto")
     args = parser.parse_args()
 
     if args.command == "doctor":
@@ -39,3 +62,35 @@ def main() -> None:
                 indent=2,
             )
         )
+
+    elif args.command == "prepare":
+        from micro_rsi.data.corpus import download, prepare
+
+        if args.download:
+            download(args.raw)
+        print(
+            json.dumps(
+                prepare(args.raw, args.output, args.validation_fraction),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+    elif args.command == "train":
+        from micro_rsi.training.runner import train
+
+        train(args.config, args.max_steps, args.run_dir, args.checkpoint_dir, args.device)
+    elif args.command == "generate":
+        from micro_rsi.inference.generation import generate, load_model
+
+        torch.set_num_threads(4)
+        model, tokenizer, _ = load_model(args.checkpoint, resolve_device(args.device))
+        print(
+            generate(
+                model, tokenizer, args.prompt, args.max_new_tokens, args.temperature, args.seed
+            )
+        )
+
+    elif args.command == "verify":
+        from micro_rsi.evaluation.acceptance import verify
+
+        verify(args.run_dir, args.checkpoint_dir, args.device)

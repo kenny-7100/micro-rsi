@@ -1,10 +1,9 @@
-# 第一阶段的起始设计配置，尚未接入训练器；参数需经短跑基准后调整。
+# 《呐喊》字符级 Transformer；相对路径以执行命令时的项目根目录为基准。
 seed = 42
 device = "auto"
 
 [data]
-path = "data/raw/corpus.txt"
-validation_fraction = 0.1
+directory = "data/processed/nahan"
 
 [tokenizer]
 kind = "character"
@@ -15,15 +14,19 @@ context_length = 256
 embedding_dim = 128
 num_heads = 4
 num_layers = 4
+ff_dim = 512
 dropout = 0.1
 
 [training]
 batch_size = 16
 max_steps = 2000
 learning_rate = 0.0003
+weight_decay = 0.01
+grad_clip = 1.0
 eval_interval = 100
-checkpoint_dir = "artifacts/checkpoints/tiny_char"
-run_dir = "runs/tiny_char"
+eval_batches = 10
+checkpoint_dir = "artifacts/checkpoints/nahan"
+run_dir = "runs/nahan"
 
 [generation]
 max_new_tokens = 200

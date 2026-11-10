@@ -15,7 +15,7 @@
 - 使用 Python 3.12、uv 和 src 包布局。安装使用 `uv sync`，执行使用 `uv run`；依赖写入 `pyproject.toml` 并提交 `uv.lock`。
 - 核心代码放在 `src/micro_rsi/`，脚本仅做薄封装，避免业务逻辑散落在脚本或 notebook 中。
 - `data/` 管数据读取和批处理，`tokenization/` 管 token 编解码及词表持久化，`models/` 管网络和前向传播，`training/` 管优化与检查点，`inference/` 管生成，`evaluation/` 管指标与验收。
-- 实验配置放在 `configs/`，采用 TOML。当前配置是设计起点；只有实现了读取和校验后才能声称训练入口支持它。
+- 实验配置放在 `configs/`，采用 TOML。当前 `tiny_char.toml` 已接入训练入口并校验字段；新增配置能力须同步实现读取和校验。
 - 优先使用 PyTorch MPS；支持 CPU 回退，接口允许显式指定设备。不得默认依赖 CUDA。
 - 增加第三方库前，先判断标准库或现有依赖是否足够；避免仅为未来设想增加重量级依赖。
 
