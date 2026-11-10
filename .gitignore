@@ -1,0 +1,26 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# 数据和训练产物只保存在本地；小型测试样例放入 tests/fixtures。
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+artifacts/*
+!artifacts/checkpoints/
+artifacts/checkpoints/*
+!artifacts/checkpoints/.gitkeep
+runs/*
+!runs/.gitkeep

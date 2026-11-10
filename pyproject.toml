@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "micro-rsi"
+version = "0.1.0"
+description = "通过本地训练与推理，逐步学习语言模型原理"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy>=2.2,<3",
+    "torch>=2.6,<3",
+    "tqdm>=4.67,<5",
+]
+
+[project.scripts]
+micro-rsi = "micro_rsi.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<10",
+    "ruff>=0.11,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/micro_rsi"]
+
+[tool.uv]
+# 项目与 uv 缓存可能位于不同磁盘，直接复制以避免跨文件系统硬链接失败。
+link-mode = "copy"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
