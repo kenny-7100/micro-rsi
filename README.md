@@ -60,7 +60,7 @@ tests/                      关键行为测试
 docs/                       中文方案、学习说明与实验记录
 ```
 
-检查点同时保存模型配置与 tokenizer，无需依赖训练对象或原始语料即可生成；也保存优化器与 PyTorch 随机状态，供以后扩展恢复训练。当前未提供恢复训练命令，`train` 总是从随机初始化开始。
+检查点同时保存模型配置与 tokenizer，无需依赖训练对象或原始语料即可生成；也保存优化器与 PyTorch 随机状态。`train` 默认从随机初始化开始，指定 `--resume` 可恢复完整训练状态；`--max-steps` 表示目标累计步数。恢复要求数据、词表、模型、种子、批大小和设备类型一致，并使用新的空输出目录。
 
 实验保留 `config.json`、`environment.json`、`data_manifest.json`、`metrics.jsonl`、`initial_samples.json`、`best_samples.json` 和 `summary.json`。固定种子便于同环境比较，跨设备、版本不保证逐位复现。
 
@@ -73,3 +73,37 @@ uv run pytest -q
 ```
 
 [文档导航](docs/README.md)汇总学习路线、训练方案与经验；[AGENTS.md](AGENTS.md)保留长期协作规则。详细原理见 [第一阶段实现导读](docs/stage-one-guide.md)。
+
+## 第二轮：temperature 与增加语料
+
+已完成《呐喊》+《彷徨》的同预算、共享词表对照，预测 loss 有改善，生成仍不连贯。完整设计、命令和结果见 [第二轮实验记录](docs/corpus-expansion-results.md)，来源见 [《彷徨》说明](docs/corpus-panghuang.md)。
+
+```sh
+uv run micro-rsi generate --checkpoint artifacts/checkpoints/nahan-panghuang/best.pt \
+  --prompt '夜里，我一个人走在路上，' --temperature 0.8 --max-new-tokens 200
+```
+
+## 百万字符中文与可读性对照
+
+本轮使用 Wikimedia 开放中文百科分片，清洗得到约500万训练字符，另外隔离整篇验证与测试集。方案、来源许可和下载地址见 [语料与实验方案](docs/wiki-readability-plan.md)，结果见 [可读性实验记录](docs/wiki-readability-results.md)。
+
+```sh
+uv run micro-rsi train --config configs/pretrain/wiki_zh_current.toml
+uv run micro-rsi train --config configs/pretrain/wiki_zh_medium.toml
+uv run python -m micro_rsi.evaluation.scale_comparison
+uv run micro-rsi readability collect
+# 对盲化样本逐条评分后汇总
+uv run micro-rsi readability score
+```
+
+这些命令拒绝覆盖已有非空输出目录。查看已生成的本地样本无需重新训练。
+
+## 当前可试用的续训结果
+
+在相同 726 万参数模型与语料上，从 6,000 步继续到 14,000 步：完整验证 loss 从 4.2218 降至 3.9749，固定短续写局部通过数从 3/24 增至 7/24，仍未达到可读性门槛。诊断证据、局限与复现见 [可读性诊断与续训](docs/training-diagnosis.md)。
+
+```sh
+uv run micro-rsi generate \
+  --checkpoint artifacts/checkpoints/wiki-zh-medium-continue/best.pt \
+  --prompt '这座城市位于' --max-new-tokens 80 --temperature 0.7 --seed 42
+```

@@ -17,6 +17,7 @@ class ModelConfig:
     num_layers: int = 4
     ff_dim: int = 512
     dropout: float = 0.1
+    init_std: float = 0.02
 
     def __post_init__(self):
         values = [
@@ -31,6 +32,8 @@ class ModelConfig:
             raise ValueError("模型维度必须为正整数")
         if self.embedding_dim % self.num_heads:
             raise ValueError("embedding_dim 必须能被 num_heads 整除")
+        if not 0 < self.init_std <= 1:
+            raise ValueError("init_std 必须在 (0, 1] 内")
         if not 0 <= self.dropout < 1:
             raise ValueError("dropout 必须在 [0, 1) 内")
 
@@ -91,12 +94,17 @@ class TransformerLM(nn.Module):
         self.blocks = nn.Sequential(*[Block(config) for _ in range(config.num_layers)])
         self.norm = nn.LayerNorm(config.embedding_dim)
         self.head = nn.Linear(config.embedding_dim, config.vocab_size, bias=False)
-        self.apply(self._initialize)
+        self.apply(lambda module: self._initialize(module, config))
+        # 随层数缩放两条残差分支，控制深层网络初始化方差。
+        residual_std = config.init_std / math.sqrt(2 * config.num_layers)
+        for block in self.blocks:
+            nn.init.normal_(block.attention.projection.weight, mean=0.0, std=residual_std)
+            nn.init.normal_(block.ff[2].weight, mean=0.0, std=residual_std)
 
     @staticmethod
-    def _initialize(module: nn.Module) -> None:
+    def _initialize(module: nn.Module, config: ModelConfig) -> None:
         if isinstance(module, (nn.Linear, nn.Embedding)):
-            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            nn.init.normal_(module.weight, mean=0.0, std=config.init_std)
             if isinstance(module, nn.Linear) and module.bias is not None:
                 nn.init.zeros_(module.bias)
 

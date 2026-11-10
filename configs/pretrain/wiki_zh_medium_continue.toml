@@ -1,0 +1,36 @@
+# 保持模型和数据不变，从第 6000 步继续；累计步数与余弦衰减。
+seed = 42
+device = "auto"
+
+[data]
+directory = "data/processed/wiki-zh-5m-v2"
+
+[tokenizer]
+kind = "character"
+
+[model]
+kind = "decoder_transformer"
+context_length = 256
+embedding_dim = 256
+num_heads = 8
+num_layers = 6
+ff_dim = 1024
+init_std = 0.02
+dropout = 0.1
+
+[training]
+batch_size = 16
+max_steps = 14000
+min_learning_rate = 0.00003
+schedule_start = 6000
+learning_rate = 0.0003
+weight_decay = 0.01
+grad_clip = 1.0
+eval_interval = 500
+eval_batches = 20
+checkpoint_dir = "artifacts/checkpoints/wiki-zh-medium-continue"
+run_dir = "runs/wiki-zh-medium-continue"
+
+[generation]
+max_new_tokens = 80
+temperature = 0.7
