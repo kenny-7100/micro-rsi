@@ -54,3 +54,5 @@ uv run ruff format --check .
 已安装 pytest；后续添加功能测试后运行 `uv run pytest`。当前尚无测试用例，pytest 的“未收集到测试”退出码不作为项目验收命令。
 
 训练起始设想见 `configs/pretrain/tiny_char.toml`，学习顺序与验收见 [学习路线](docs/roadmap.md)。配置中的步数与批大小是待测起点，不是训练速度或质量承诺。
+
+协作中的可复用方法、实际踩坑和工程细节持续整理到 [文档导航](docs/README.md)；简明的长期协作规则保留在 [AGENTS.md](AGENTS.md)。
